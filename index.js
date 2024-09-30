@@ -1,5 +1,8 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ActionRowBuilder, EmbedBuilder, InteractionType } = require('discord.js');
 const axios = require('axios');
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages],
@@ -84,7 +87,6 @@ function stopRequests(type, channel) {
 
 client.on('messageCreate', async (message) => {
     if (message.author.dmChannel) {
-        // Start button with two choices (Real Life and Hentai)
         if (message.content.toLowerCase() === 'start') {
             const embed = new EmbedBuilder()
                 .setTitle('Choose an Option')
@@ -129,4 +131,12 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-client.login('YOUR_BOT_TOKEN');
+app.get('/', (req, res) => {
+  res.send(`botman here to serve you justice`)
+})
+
+app.listening(port, () => {
+  console.log(`Port found on http://localhost:${port}`);
+});
+
+client.login('MTI4MzMzMzUwNjAwODc0Mzk2Nw.G4fQmS.yrH4fq7CLNB0XCZLOsBQMujJZRK1QyUfkehXyE');
