@@ -6,12 +6,19 @@ const port = process.env.PORT || 3000;
 require('dotenv').config();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent],
-  partials: ['MESSAGE', 'CHANNEL']
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMembers,
+  ],
+  partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember],
 });
 
 const REAL_LIFE = '1284548623073280072';
-const HENTAI = '1284548623073280071';
+const HENTAI = '1290223368892846080';
 
 let isRequestingRealLife = false;
 let isRequestingHentai = false;
@@ -71,7 +78,7 @@ async function startRequests(channel, type) {
             console.error('Error making request:', error);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 900));
+        await new Promise(resolve => setTimeout(resolve, 2000));
     }
 }
 
@@ -87,9 +94,10 @@ function stopRequests(type, channel) {
 
 client.on('messageCreate', async message => {
     const channel = message.channel;
+    const messageContent = message.content.toLowerCase().trim();
 
     if (channel.id === REAL_LIFE || channel.id === HENTAI) {
-        if (message.content.toLowerCase().includes('start')) {
+        if (messageContent === 'start') {
             if (channel.id === REAL_LIFE && !isRequestingRealLife) {
                 startRequests(channel, 'realLife');
             } else if (channel.id === HENTAI && !isRequestingHentai) {
@@ -97,7 +105,7 @@ client.on('messageCreate', async message => {
             } else {
                 channel.send(`Requests are already running for ${channel.id === REAL_LIFE ? 'Real Life' : 'Hentai'}.`);
             }
-        } else if (message.content.toLowerCase().includes('stop')) {
+        } else if (messageContent === 'stop') {
             if (channel.id === REAL_LIFE && isRequestingRealLife) {
                 stopRequests('realLife', channel);
             } else if (channel.id === HENTAI && isRequestingHentai) {
