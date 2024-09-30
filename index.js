@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ButtonBuilder, ActionRowBuilder, EmbedBuilder, InteractionType } = require('discord.js');
+const { Client, GatewayIntentBits, ButtonBuilder, ActionRowBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const axios = require('axios');
 const express = require('express');
 const app = express();
@@ -6,9 +6,12 @@ const port = process.env.PORT || 3000;
 require('dotenv').config();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent],
   partials: ['MESSAGE', 'CHANNEL']
 });
+
+const REAL_LIFE = '1284548623073280072';
+const HENTAI = '1284548623073280071';
 
 let isRequestingRealLife = false;
 let isRequestingHentai = false;
@@ -20,7 +23,7 @@ async function startRequests(channel, type) {
         isRequestingHentai = true;
     }
 
-    await channel.send('Started making requests.');
+    channel.send('Started making requests.');
 
     while ((type === 'realLife' ? isRequestingRealLife : isRequestingHentai)) {
         try {
@@ -55,16 +58,12 @@ async function startRequests(channel, type) {
             let gifUrl;
             if (randomApiUrl.includes('gelbooru.com')) {
                 const post = response.data.post[0];
-                if (post.file_url.endsWith('.gif')) {
-                    gifUrl = post.file_url;
-                } else {
-                    gifUrl = null;
-                }
+                gifUrl = post.file_url.endsWith('.gif') ? post.file_url : null;
             } else {
                 gifUrl = response.data.message || response.data.link;
             }
             const embed = new EmbedBuilder()
-                .setTitle(type === 'realLife' ? 'Real Life' : 'Hentai')
+                .setTitle(type === 'realLife' ? 'Real life' : 'Hentai')
                 .setImage(gifUrl);
 
             await channel.send({ embeds: [embed] });
@@ -72,7 +71,7 @@ async function startRequests(channel, type) {
             console.error('Error making request:', error);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 900));
     }
 }
 
@@ -86,46 +85,25 @@ function stopRequests(type, channel) {
     channel.send('Stopped making requests.');
 }
 
-client.on('messageCreate', async (message) => {
-    if (message.author.dmChannel) {
-        const command = message.content.trim().toLowerCase();
-        if (command === 'start requests') {
-            const embed = new EmbedBuilder().setTitle('Choose an Option').setDescription('Click a button to start Real Life or Hentai requests.');
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('realLife').setLabel('Real Life').setStyle('Primary'),
-                new ButtonBuilder().setCustomId('hentai').setLabel('Hentai').setStyle('Secondary')
-            );
-            await message.author.dmChannel.send({ embeds: [embed], components: [row] });
-        } else if (command === 'stop requests') {
-            if (isRequestingRealLife) {
-                stopRequests('realLife', message.author.dmChannel);
-                await message.author.dmChannel.send('Stopped Real Life requests.');
-            } else if (isRequestingHentai) {
-                stopRequests('hentai', message.author.dmChannel);
-                await message.author.dmChannel.send('Stopped Hentai requests.');
-            } else {
-                await message.author.dmChannel.send('No requests are currently running.');
-            }
-        }
-    }
-});
+client.on('messageCreate', async message => {
+    const channel = message.channel;
 
-client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isButton()) return;
-    if (interaction.user.dmChannel) {
-        if (interaction.customId === 'realLife') {
-            if (!isRequestingRealLife) {
-                startRequests(interaction.user.dmChannel, 'realLife');
-                await interaction.reply({ content: 'Started Real Life requests.', ephemeral: true });
+    if (channel.id === REAL_LIFE || channel.id === HENTAI) {
+        if (message.content.toLowerCase().includes('start')) {
+            if (channel.id === REAL_LIFE && !isRequestingRealLife) {
+                startRequests(channel, 'realLife');
+            } else if (channel.id === HENTAI && !isRequestingHentai) {
+                startRequests(channel, 'hentai');
             } else {
-                await interaction.reply({ content: 'Requests are already running.', ephemeral: true });
+                channel.send(`Requests are already running for ${channel.id === REAL_LIFE ? 'Real Life' : 'Hentai'}.`);
             }
-        } else if (interaction.customId === 'hentai') {
-            if (!isRequestingHentai) {
-                startRequests(interaction.user.dmChannel, 'hentai');
-                await interaction.reply({ content: 'Started Hentai requests.', ephemeral: true });
+        } else if (message.content.toLowerCase().includes('stop')) {
+            if (channel.id === REAL_LIFE && isRequestingRealLife) {
+                stopRequests('realLife', channel);
+            } else if (channel.id === HENTAI && isRequestingHentai) {
+                stopRequests('hentai', channel);
             } else {
-                await interaction.reply({ content: 'Requests are already running.', ephemeral: true });
+                channel.send(`Requests are not running for ${channel.id === REAL_LIFE ? 'Real Life' : 'Hentai'}.`);
             }
         }
     }
