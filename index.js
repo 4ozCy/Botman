@@ -3,6 +3,7 @@ const axios = require('axios');
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
+require('dotenv').config();
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages],
@@ -71,7 +72,7 @@ async function startRequests(channel, type) {
             console.error('Error making request:', error);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
 
@@ -87,56 +88,47 @@ function stopRequests(type, channel) {
 
 client.on('messageCreate', async (message) => {
     if (message.author.dmChannel) {
-        if (message.content.toLowerCase() === 'start') {
-            const embed = new EmbedBuilder()
-                .setTitle('Choose an Option')
-                .setDescription('Click a button to start either Real Life or Hentai requests.');
-
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('realLife')
-                        .setLabel('Real Life')
-                        .setStyle('Primary'),
-                    new ButtonBuilder()
-                        .setCustomId('hentai')
-                        .setLabel('Hentai')
-                        .setStyle('Secondary')
-                );
-
+        const command = message.content.trim().toLowerCase();
+        if (command === 'start requests') {
+            const embed = new EmbedBuilder().setTitle('Choose an Option').setDescription('Click a button to start Real Life or Hentai requests.');
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('realLife').setLabel('Real Life').setStyle('Primary'),
+                new ButtonBuilder().setCustomId('hentai').setLabel('Hentai').setStyle('Secondary')
+            );
             await message.author.dmChannel.send({ embeds: [embed], components: [row] });
+        } else if (command === 'stop requests') {
+            if (isRequestingRealLife) {
+                stopRequests('realLife', message.author.dmChannel);
+                await message.author.dmChannel.send('Stopped Real Life requests.');
+            } else if (isRequestingHentai) {
+                stopRequests('hentai', message.author.dmChannel);
+                await message.author.dmChannel.send('Stopped Hentai requests.');
+            } else {
+                await message.author.dmChannel.send('No requests are currently running.');
+            }
         }
     }
 });
 
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
-
     if (interaction.user.dmChannel) {
         if (interaction.customId === 'realLife') {
             if (!isRequestingRealLife) {
                 startRequests(interaction.user.dmChannel, 'realLife');
                 await interaction.reply({ content: 'Started Real Life requests.', ephemeral: true });
             } else {
-                await interaction.reply({ content: 'Requests are already running for Real Life.', ephemeral: true });
+                await interaction.reply({ content: 'Requests are already running.', ephemeral: true });
             }
         } else if (interaction.customId === 'hentai') {
             if (!isRequestingHentai) {
                 startRequests(interaction.user.dmChannel, 'hentai');
                 await interaction.reply({ content: 'Started Hentai requests.', ephemeral: true });
             } else {
-                await interaction.reply({ content: 'Requests are already running for Hentai.', ephemeral: true });
+                await interaction.reply({ content: 'Requests are already running.', ephemeral: true });
             }
         }
     }
 });
 
-app.get('/', (req, res) => {
-  res.send(`botman here to serve you justice`)
-})
-
-app.listen(port, () => {
-  console.log(`Port found on http://localhost:${port}`);
-});
-
-client.login('MTI4MzMzMzUwNjAwODc0Mzk2Nw.G4fQmS.yrH4fq7CLNB0XCZLOsBQMujJZRK1QyUfkehXyE');
+client.login(process.env.TOKEN);
