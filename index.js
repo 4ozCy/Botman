@@ -135,7 +135,7 @@ app.get('/', (req, res) => {
   res.send(`botman here to serve you justice`)
 })
 
-app.listening(port, () => {
+app.listen(port, () => {
   console.log(`Port found on http://localhost:${port}`);
 });
 
