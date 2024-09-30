@@ -131,4 +131,12 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
+app.get('/', (req, res) => {
+  res.send(`botman here to serve you justice`)
+})
+
+app.listen(port, () => {
+  console.log(`Port found on http://localhost:${port}`);
+});
+
 client.login(process.env.TOKEN);
